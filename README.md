@@ -28,7 +28,7 @@ Bake VM images for reliable cloud native deployments.
         os_tenant_name: 1873c63cf02347f8bcfd1ea76bc0ce06
         os_tenant_id: project-1
 
-     An example ~/vars.yml file is located at ~/cloud-patterns-00-bake-vm-image/vars.yml.example. These setting can be obtained by from the Horizon console with clicking 'Download OpenStack RC File' from the 'API Access' tab in the 'Access & Security' menu.
+     An example ~/vars.yml file is located at ~/cloud-patterns-00-bake-vm-image/vars.yml.example. These setting can be obtained by from the Horizon console with clicking `Download OpenStack RC File` from the `API Access` tab in the `Access & Security` menu.
  
 # Usage
 

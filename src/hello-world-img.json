@@ -1,0 +1,24 @@
+{
+    "variables": {
+        "source_image": "",
+        "image_name":   "",
+        "flavor":       ""
+    },
+    "builders": [{
+        "type":         "openstack",
+        "ssh_username": "centos",
+        "source_image": "{{user `source_image`}}",
+        "image_name":   "{{user `image_name`}}",
+        "flavor":       "{{user `flavor`}}"
+    }],
+    "provisioners": [{
+        "type":         "shell",
+        "inline": [     "sudo yum upgrade -y",
+                        "sudo yum install -y http://cbs.centos.org/kojifiles/packages/docker/1.4.1/2.el7/x86_64/docker-1.4.1-2.el7.x86_64.rpm",
+                        "sudo yum install -y http://cbs.centos.org/kojifiles/packages/docker/1.4.1/2.el7/x86_64/docker-logrotate-1.4.1-2.el7.x86_64.rpm",
+                        "sudo systemctl enable docker",
+                        "sudo systemctl start docker",
+                        "sudo docker run -d -p 80:80 --restart=always keithchambers/docker-hello-world:latest",
+                        "sudo poweroff"]
+    }]
+}

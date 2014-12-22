@@ -82,6 +82,19 @@
         name: "{{ ansible_user_id }}"
         generate_ssh_key: yes
         ssh_key_bits: 2048 
+      register: gen_ssh_key
+      tags: setup
+
+
+    - name: delete previous ssh key for openstack tenant
+      nova_keypair:
+        auth_url: "{{ os_auth_url }}"
+        login_username: "{{ os_username }}"
+        login_password: "{{ os_password }}"
+        login_tenant_name: "{{ os_tenant_name}}"
+        name: build-img
+        state: absent
+      when: gen_ssh_key.changed
       tags: setup
 
     - name: add ssh key to openstack tenant
@@ -89,7 +102,7 @@
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
-        login_tenant_name: "{{ os_tenant_name }}"
+        login_tenant_name: "{{ os_tenant_name}}"
         name: build-img
         public_key: "{{ lookup('file','~/.ssh/id_rsa.pub') }}"
         state: present

@@ -9,10 +9,9 @@ Bake VM images for reliable cloud native deployments.
 
 * Step 2: Run the following commands.
 
-        ```shell
         $ sudo yum install git -y
         $ git clone https://github.com/keithchambers/cloud-patterns-00-bake-vm-image.git
-        ```
+
 
 * Step 3: Create and populate ~/vars.yml.
 
@@ -28,7 +27,6 @@ Bake VM images for reliable cloud native deployments.
 
 Execute  ~/cloud-patterns-00-bake-vm-image/build.sh
 
-        ```shell
         $ ~/cloud-patterns-00-bake-vm-image/build.sh
-        ```
+
 

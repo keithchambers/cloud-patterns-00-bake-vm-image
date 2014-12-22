@@ -38,9 +38,15 @@ An example `~/vars.yml` file is located at `~/cloud-patterns-00-bake-vm-image/va
  
 # Usage
 
-Execute  `~/cloud-patterns-00-bake-vm-image/build.sh`.
+Step 1: cd to `~/cloud-patterns-00-bake-vm-image`.
 
 ```
-$ ~/cloud-patterns-00-bake-vm-image/build.sh
+$ cd ~/cloud-patterns-00-bake-vm-image
+```
+
+Step 2: execute  `./build-img.sh`.
+
+```
+$ ./build-img.sh
 ```
 

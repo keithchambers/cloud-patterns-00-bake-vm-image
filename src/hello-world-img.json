@@ -20,6 +20,6 @@
             "sudo systemctl enable docker",
             "sudo systemctl start docker",
             "sudo docker run -d -p 80:80 --restart=always keithchambers/docker-hello-world:latest",
-            "sudo poweroff"
-    ]}]
+            "sudo poweroff"]
+    }]
 }

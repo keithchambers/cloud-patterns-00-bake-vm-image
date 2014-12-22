@@ -5,15 +5,22 @@ Bake VM images for reliable cloud native deployments.
 
 # Setup
 
-* Step 1: Launch a CentOS 7 VM to OpenStack.
+* Launch a CentOS 7 instance to OpenStack.
 
-* Step 2: Run the following commands.
+* SSH to the instance of CentOS 7.
+
+        $ ssh centos@<instance-ip-address>
+
+* Install git.
 
         $ sudo yum install git -y
+        
+* Clone cloud-patterns-00-bake-vm-image git repo.
+
         $ git clone https://github.com/keithchambers/cloud-patterns-00-bake-vm-image.git
 
 
-* Step 3: Create and populate ~/vars.yml.
+* Create ~/vars.yml with OpenStack settings.
 
         os_auth_url: https://region-1.us-1.cloud.cisco.com:5000/v2.0
         os_username: kechambe
@@ -25,7 +32,7 @@ Bake VM images for reliable cloud native deployments.
  
 # Usage
 
-Execute  ~/cloud-patterns-00-bake-vm-image/build.sh
+Execute  ~/cloud-patterns-00-bake-vm-image/build.sh.
 
         $ ~/cloud-patterns-00-bake-vm-image/build.sh
 

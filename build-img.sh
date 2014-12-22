@@ -1,13 +1,16 @@
 #!/bin/bash
-set -e
  
-if [[ $(command -v ansible-playbook >/dev/null 2>&1) -ne 0 ]]; then
+command -v ansible-playbook
+if [ $? -ne 0 ]; then
     sudo yum install -y epel-release
     sudo yum install -y ansible
 fi
  
-ansible-playbook lib/build-img.yaml
+ansible-playbook ./lib/build-img.yml
+RC=$?
+
+echo "Completed in $SECONDS" seconds."
  
-exit $?
+exit "$RC"
  
 # EOF

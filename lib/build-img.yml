@@ -14,9 +14,15 @@
     - packer_file: "{{ packer_url | basename }}"
 
   vars_files:
-    - {{ ansible_env.PATH }}/vars/env.yml
+    - "{{ ansible_env.HOME }}/vars.yml"
 
   tasks:
+    - name: base directory
+      command: git rev-parse --show-toplevel
+      register: top_dir
+      always_run: yes
+      changed_when: no 
+
     - name: create ~/tmp directory
       file:
         path: "{{ tmp_dir }}"
@@ -118,8 +124,14 @@
  
     - name: get cloud instance flavor uuid for image build
       shell: nova flavor-list | awk '$6 >= 2048 && $6 <= 16192 && $8 >= 10 {print $2; exit }'
+      environment:
+        OS_AUTH_URL: "{{ os_auth_url }}"
+        OS_USERNAME: "{{ os_username }}"
+        OS_PASSWORD: "{{ os_password }}"
+        OS_TENANT_NAME: "{{ os_tenant_name }}"
       register: flavor
       changed_when: no
+      failed_when: flavor.stdout == ""
       always_run: yes
       tags:
         - build
@@ -127,12 +139,18 @@
  
     - name: get source image uuid for image build
       shell: nova image-list | awk '$4 == "'"{{ base_img_name }}"'" { print $2 }'
+      environment:
+        OS_AUTH_URL: "{{ os_auth_url }}"
+        OS_USERNAME: "{{ os_username }}"
+        OS_PASSWORD: "{{ os_password }}"
+        OS_TENANT_NAME: "{{ os_tenant_name }}"
       register: base_img_uuid
       changed_when: no
+      failed_when: base_img_uuid.stdout == ""
       tags: build
  
     - name: generate version number for image build
-      shell: date "+%Y%m%d-%H%M%"
+      shell: date "+%Y%m%d%H%M"
       register: version
       changed_when: no
       always_run: yes
@@ -161,7 +179,7 @@
         -var 'flavor={{ flavor.stdout }}'
         -var 'source_image={{ base_img_uuid.stdout }}'
         -var 'image_name={{ build_img }}'
-        {{ ansible_env.HOME }}/src/hello-world-img.json
+        {{ top_dir.stdout }}/src/hello-world-img.json
       environment:
         PACKER_LOG: 1
         PACKER_LOG_PATH: "{{ log_dir }}/{{ build_img }}.log"

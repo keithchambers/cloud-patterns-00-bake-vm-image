@@ -91,7 +91,7 @@
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
-        login_tenant_name: "{{ os_tenant_name}}"
+        login_tenant_name: "{{ os_tenant_name }}"
         name: build-img
         state: absent
       when: gen_ssh_key.changed

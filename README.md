@@ -8,10 +8,10 @@ Bake VM images for reliable cloud native deployments.
 * Step 1: Launch a CentOS 7 VM to OpenStack.
 
 * Step 2: Run the following commands:
-```shell
-    $ sudo yum install git -y
-    $ git clone https://github.com/keithchambers/cloud-patterns-00-bake-vm-image.git
-```
+        ```shell
+        $ sudo yum install git -y
+        $ git clone https://github.com/keithchambers/cloud-patterns-00-bake-vm-image.git
+        ```
 
 * Step 3: Create and populate ~/vars.yml.
 
@@ -26,7 +26,7 @@ Bake VM images for reliable cloud native deployments.
 # Usage
 
 Execute  ~/cloud-patterns-00-bake-vm-image/build.sh
- ```shell
-    $ ~/cloud-patterns-00-bake-vm-image/build.sh
- ```
+        ```shell
+        $ ~/cloud-patterns-00-bake-vm-image/build.sh
+        ```
 

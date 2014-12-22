@@ -24,7 +24,7 @@ Clone this git repo.
 $ git clone https://github.com/keithchambers/cloud-patterns-00-bake-vm-image.git
 ```
 
-Create `$HOME/vars.yml` file with OpenStack authentication end-point and credentials.
+Create `$HOME/vars.yml` file with the OpenStack authentication end-point and credentials to use.
 
 ```
 os_auth_url: https://region-1.us-1.cloud.cisco.com:5000/v2.0
@@ -35,7 +35,7 @@ os_tenant_id: project-1
 ```
 An example `~/vars.yml` file is located at `~/cloud-patterns-00-bake-vm-image/vars.yml.example`.
 
-These setting can be downlaoded from the Horizon console.  Go to the `Access & Security` menu, select the `API Access` tab, and click `Download OpenStack RC File`.
+To download the OpenStack authentication end-point and credentials from the Horizon console, go to the `Access & Security` menu, select the `API Access` tab, and click `Download OpenStack RC File`.
  
 # Usage
 

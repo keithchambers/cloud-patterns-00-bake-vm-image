@@ -85,7 +85,6 @@
       register: gen_ssh_key
       tags: setup
 
-
     - name: delete previous ssh key for openstack tenant
       nova_keypair:
         auth_url: "{{ os_auth_url }}"

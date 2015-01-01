@@ -4,7 +4,7 @@
   vars:
     - base_img_url: http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2c
     - packer_url: https://dl.bintray.com/mitchellh/packer/packer_0.7.5_linux_amd64.zip
-    # static
+    # constants
     - tmp_dir: "{{ ansible_env.HOME }}/tmp"
     - log_dir: "{{ ansible_env.HOME }}/logs"
     - git_repo: "{{ git_url | basename }}"

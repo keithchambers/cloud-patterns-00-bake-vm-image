@@ -1,49 +1,42 @@
 ---
 - hosts: localhost
   connection: local
-  vars:
-    - base_img_url: http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2c
-    - packer_url: https://dl.bintray.com/mitchellh/packer/packer_0.7.5_linux_amd64.zip
-    # constants
-    - tmp_dir: "{{ ansible_env.HOME }}/tmp"
-    - log_dir: "{{ ansible_env.HOME }}/logs"
-    - git_repo: "{{ git_url | basename }}"
-    - git_dir: "{{ git_repo.split('.') | first }}"
-    - base_img_file: "{{ base_img_url | basename }}"
-    - base_img_name: "{{ base_img_file.split('.') | first }}"
-    - packer_file: "{{ packer_url | basename }}"
-
   vars_files:
     - "{{ ansible_env.HOME }}/vars.yml"
-
   tasks:
+    - set_fact: #constants
+        tmp_dir: "{{ ansible_env.HOME }}/tmp"
+        log_dir: "{{ ansible_env.HOME }}/logs"
+        git_repo: "{{ git_url | basename }}"
+        git_dir: "{{ git_repo.split('.') | first }}"
+        base_img_file: "{{ base_img_url | basename }}"
+        base_img_name: "{{ base_img_file.split('.') | first }}"
+        packer_file: "{{ packer_url | basename }}"
+    
     - name: base directory
       command: git rev-parse --show-toplevel
       register: top_dir
       always_run: yes
       changed_when: no 
 
-    - name: create ~/tmp directory
+    - name: create tmp directory
       file:
         path: "{{ tmp_dir }}"
         state: directory
-      tags:
-        - setup
+      tags: setup
  
-    - name: create ~/logs directory
+    - name: create log directory
       file:
         path: "{{ log_dir }}"
         state: directory
-      tags:
-        - build
+      tags: build
  
     - name: enable openstack yum repo
       sudo: yes
       yum:
         name: https://repos.fedorapeople.org/repos/openstack/openstack-icehouse/rdo-release-icehouse-4.noarch.rpm
         state: present
-      tags:
-        - setup
+      tags: setup
  
     - name: install playbook dependencies via yum
       sudo: yes
@@ -55,8 +48,7 @@
         - qemu-img
         - python-novaclient
         - python-glanceclient
-      tags:
-        - setup
+      tags: setup
  
     # as of ansible v1.8.1 the unarchive module is not idempotent for zip archives
     - name: check if packer installed
@@ -64,16 +56,14 @@
       register: packer
       changed_when: packer.stdout != "/usr/local/bin/packer"
       always_run: yes
-      tags:
-        - setup
+      tags: setup
  
     - name: download packer binary archive
       get_url:
         url: "{{ packer_url }}"
         dest: "{{ tmp_dir }}/{{ packer_file }}"
       when: packer.changed
-      tags:
-        - setup
+      tags: setup
  
     - name: install packer from archive
       sudo: yes
@@ -81,8 +71,7 @@
         src: "{{ tmp_dir }}/{{ packer_file }}"
         dest: /usr/local/bin
       when: packer.changed
-      tags:
-        - setup
+      tags: setup
 
     - name: generate ssh key for current user
       user:
@@ -90,8 +79,7 @@
         generate_ssh_key: yes
         ssh_key_bits: 2048 
       register: gen_ssh_key
-      tags:
-        - setup
+      tags: setup
 
     - name: delete previous ssh key for openstack tenant
       nova_keypair:
@@ -102,8 +90,7 @@
         name: build-img
         state: absent
       when: gen_ssh_key.changed
-      tags:
-        - setup
+      tags: setup
 
     - name: add ssh key to openstack tenant
       nova_keypair:
@@ -114,23 +101,20 @@
         name: build-img
         public_key: "{{ lookup('file','~/.ssh/id_rsa.pub') }}"
         state: present
-      tags:
-        - setup
+      tags: setup
 
     - name: download source image
       get_url:
         url: "{{ base_img_url }}"
         dest: "{{ tmp_dir }}/{{ base_img_file }}"
-      tags:
-        - setup
+      tags: setup
  
     - name: convert source image to raw format
       command: qemu-img convert {{ base_img_file }} {{ base_img_name }}.raw
       args:
         chdir: "{{ tmp_dir }}"
         creates: "{{ base_img_name }}.raw"
-      tags:
-        - setup
+      tags: setup
  
     - name: upload converted source image to cloud project
       glance_image:
@@ -144,8 +128,7 @@
         is_public: false
         timeout: 1800
         state: present
-      tags:
-        - setup
+      tags: setup
  
     - name: get cloud instance flavor uuid for image build
       shell: nova flavor-list | awk '$6 >= 2048 && $6 <= 16192 && $8 >= 10 {print $2; exit }'
@@ -172,8 +155,7 @@
       register: base_img_uuid
       changed_when: no
       failed_when: base_img_uuid.stdout == ""
-      tags:
-        - build
+      tags: build
  
     - name: generate version number for image build
       shell: date "+%Y%m%d%H%M"
@@ -197,8 +179,7 @@
       changed_when: build_exists.rc == 1
       failed_when: no
       always_run: yes
-      tags:
-        - build
+      tags: build
  
     - name: build image
       shell:
@@ -215,8 +196,7 @@
         OS_PASSWORD: "{{ os_password }}"
         OS_TENANT_ID: "{{ os_tenant_id }}"
       when: build_exists.changed
-      tags:
-        - build
+      tags: build
         
     # test to confirm the built image boots properly 
     - name: launch instance of built image
@@ -231,14 +211,12 @@
         key_name: "build-img"
         state: present
       register: instance
-      tags:
-        - test
+      tags: test
       
     - name: set_fact ansible_ssh_host
       set_fact: ansible_ssh_host={{ instance.private_ip }}
       when: instance.changed
-      tags:
-        - test
+      tags: test
       
     - name: wait for instance to boot
       local_action:
@@ -249,8 +227,7 @@
         timeout: 120
         state: started
       when: instance.changed
-      tags:
-        - test
+      tags: test
       
     - name: destroy instance
       nova_compute:
@@ -261,5 +238,4 @@
         name: "{{ build_img }}"
         state: absent
       when: instance.changed
-      tags:
-        - test
+      tags: test

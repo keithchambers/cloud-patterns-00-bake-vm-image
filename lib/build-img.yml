@@ -4,7 +4,8 @@
   vars_files:
     - "{{ ansible_env.HOME }}/vars.yml"
   tasks:
-    - set_fact: #constants
+    # constants
+    - set_fact:
         tmp_dir: "{{ ansible_env.HOME }}/tmp"
         log_dir: "{{ ansible_env.HOME }}/logs"
         git_repo: "{{ git_url | basename }}"

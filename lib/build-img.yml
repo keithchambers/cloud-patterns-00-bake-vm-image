@@ -78,7 +78,7 @@
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
         login_tenant_name: "{{ os_tenant_name }}"
-        name: build-img
+        name: test-instance
         state: absent
       when: gen_ssh_key.changed
       tags: setup
@@ -89,7 +89,7 @@
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
         login_tenant_name: "{{ os_tenant_name}}"
-        name: "build-img"
+        name: test-instance
         public_key: "{{ lookup('file','~/.ssh/id_rsa.pub') }}"
         state: present
       tags: setup
@@ -198,10 +198,10 @@
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
         login_tenant_name: "{{ os_tenant_name }}"
-        name: "{{ build_img }}"
+        name: test-instance
         image_name: "{{ build_img }}"
         flavor_id: "{{ flavor.stdout }}"
-        key_name: "build-img"
+        key_name: test-instance
         nics:
           - net-id: "{{ os_net_id }}"
         state: present
@@ -228,6 +228,8 @@
       tags: test
 
 - hosts: test_instance
+  vars_files:
+    - ../vars/main.yml
   tasks:
     - name: run command against instance
       command: uptime
@@ -236,6 +238,8 @@
 
 - hosts: localhost
   connection: local
+  vars_files:
+    - ../vars/main.yml
   tasks:
     - name: destroy instance
       nova_compute:
@@ -243,7 +247,7 @@
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
         login_tenant_name: "{{ os_tenant_name }}"
-        name: "{{ build_img }}"
+        name: test-instance
         state: absent
       when: test_instance.changed
       tags: test

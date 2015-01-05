@@ -153,17 +153,13 @@
       register: version
       changed_when: no
       always_run: yes
-      tags:
-        - build
-        - test
+      tags: build
 
     - name: set_fact build_img
       set_fact:
         build_img: "hello-world-v{{ version.stdout }}"
       always_run: yes
-      tags:
-        - build
-        - test
+      tags: build
 
     - name: check if build already exists
       shell: nova image-list | grep -q {{ build_img }}
@@ -192,7 +188,17 @@
       tags: build
 
     # test to confirm the built image boots properly 
-    - name: launch instance of built image
+    - name: destroy test instance from previous build (if exists)
+      nova_compute:
+        auth_url: "{{ os_auth_url }}"
+        login_username: "{{ os_username }}"
+        login_password: "{{ os_password }}"
+        login_tenant_name: "{{ os_tenant_name }}"
+        name: test-instance
+        state: absent
+      tags: test
+
+    - name: launch test instance of built image
       nova_compute:
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"
@@ -223,25 +229,26 @@
     - name: add test instance to inventory
       add_host:
         name: "{{ test_instance.private_ip }}"
-        groups: test_instance
+        groups: test-instance
       when: test_instance.changed
       tags: test
 
-- hosts: test_instance
+- hosts: test-instance
+  gather_facts: no
   vars_files:
     - ../vars/main.yml
   tasks:
-    - name: run command against instance
+    - name: run command against test instance
       command: uptime
-      register: uptime
-      changed_when: uptime.rc != 0
+      tags: test
 
 - hosts: localhost
   connection: local
+  gather_facts: no
   vars_files:
     - ../vars/main.yml
   tasks:
-    - name: destroy instance
+    - name: destroy test instance
       nova_compute:
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"
@@ -249,5 +256,4 @@
         login_tenant_name: "{{ os_tenant_name }}"
         name: test-instance
         state: absent
-      when: test_instance.changed
       tags: test

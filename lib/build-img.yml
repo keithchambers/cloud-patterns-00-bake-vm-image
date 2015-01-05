@@ -1,6 +1,5 @@
 ---
 - hosts: localhost
-  connection: local
   vars_files:
     - ../vars/main.yml
   vars:
@@ -130,7 +129,7 @@
       failed_when: base_img_uuid.stdout == ""
 
     - name: generate version number for image build
-      shell: date "+%Y%m%d%H%M"
+      shell: date "+%Y%m%d"
       register: version
       changed_when: no
 
@@ -144,9 +143,12 @@
 
     - name: check if image with same name registered in openstack
       shell: nova image-list | grep -q {{ build_img }}
+      environment:
+        OS_AUTH_URL: "{{ os_auth_url }}"
+        OS_USERNAME: "{{ os_username }}"
+        OS_PASSWORD: "{{ os_password }}"
+        OS_TENANT_NAME: "{{ os_tenant_name }}"
       register: build_exists
-      changed_when: no
-      failed_when: build_exists.rc != 1
 
     - name: build image and register with openstack
       shell:
@@ -163,6 +165,7 @@
         OS_USERNAME: "{{ os_username }}"
         OS_PASSWORD: "{{ os_password }}"
         OS_TENANT_ID: "{{ os_tenant_id }}"
+      when: build_exists.rc == 1
 
     # test the build
     - name: launch test instance of built image
@@ -179,11 +182,6 @@
           - net-id: "{{ os_net_id }}"
         state: present
       register: test_instance
-
-    - name: add test instance to inventory
-      add_host:
-        name: "{{ test_instance.private_ip }}"
-      when: test_instance.changed
 
     - name: wait for test instance to boot
       local_action:

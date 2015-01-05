@@ -128,14 +128,14 @@
       changed_when: no
       failed_when: base_img_uuid.stdout == ""
 
-    - name: generate version number for image build
-      shell: date "+%Y%m%d"
+    - name: audo-generate version number for image build
+      shell: date "+v%Y%m%d-%H%M"
       register: version
       changed_when: no
 
     - name: set_fact build_img
       set_fact:
-        build_img: "{{ build_img_prefix }}-v{{ version.stdout }}"
+        build_img: "{{ build_img_prefix }}-{{ version.stdout }}"
 
     - name: print image name for build
       debug:

@@ -204,7 +204,7 @@
 
     - name: generate manifest of installed containers
       sudo: yes
-      shell: docker images | tail -n +2 | awk '{ print "repo:" $1 " tag:" $2 " image" $3 }'
+      shell: docker images | tail -n +2 | awk '{ print "repo:" $1 " tag:" $2 " image:" $3 }'
       register: containers
       changed_when: no
       delegate_to: "{{ test_instance.private_ip }}"

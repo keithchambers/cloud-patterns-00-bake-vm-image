@@ -2,14 +2,16 @@
     "variables": {
         "source_image": "",
         "image_name":   "",
-        "flavor":       ""
+        "flavor":       "",
+        "networks":     ""
     },
     "builders": [{
         "type":         "openstack",
         "ssh_username": "centos",
         "image_name":   "{{user `image_name`}}",
         "source_image": "{{user `source_image`}}",
-        "flavor":       "{{user `flavor`}}"
+        "flavor":       "{{user `flavor`}}",
+        "networks":     "{{user `networks`}}"
     }],
     "provisioners": [{
         "type": "shell",

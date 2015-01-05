@@ -208,16 +208,14 @@
       delegate_to: "{{ test_instance.private_ip }}"
 
     - name: log manifest of installed packages to log directory
-      local_action: shell echo {{ item }} >> {{ log_dir }}/{{ build_img }}.manifest
+      local_action: shell echo package: {{ item }} >> {{ log_dir }}/{{ build_img }}.manifest
       with_items:
         - "{{ packages.stdout_lines }}"
-      run_once: yes
 
     - name: log manifest of installed containers to log directory
-      local_action: shell echo {{ item }} >> {{ log_dir }}/{{ build_img }}.manifest
+      local_action: shell echo container: {{ item }} >> {{ log_dir }}/{{ build_img }}.manifest
       with_items:
         - "{{ containers.stdout_lines }}"
-      run_once: yes
 
     - name: destroy test instance
       nova_compute:

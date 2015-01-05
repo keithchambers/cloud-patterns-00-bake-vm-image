@@ -12,9 +12,8 @@ ansible-playbook lib/build-img.yml
 RETVAL="$?"
 
 # exit with details
-echo -n "Completed with "
-[[ "$RETVAL" -eq 0 ]] && echo -n "SUCCESS" || echo -n "ERROR"
-echo -n " in $SECONDS seconds"
+[[ "$RETVAL" -eq 0 ]] && echo -n "OK" || echo -n "ERROR"
+echo " in $SECONDS seconds"
 exit "$RETVAL"
 
 # EOF

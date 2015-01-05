@@ -167,7 +167,7 @@
         OS_USERNAME: "{{ os_username }}"
         OS_PASSWORD: "{{ os_password }}"
         OS_TENANT_ID: "{{ os_tenant_id }}"
-      when: build_exists.rc == 0
+      when: build_exists.rc == 1
 
     # test the build
     - name: launch test instance of built image

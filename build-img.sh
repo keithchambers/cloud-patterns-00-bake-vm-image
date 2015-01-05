@@ -1,5 +1,4 @@
 #!/bin/bash
-set -eo pipefail
  
 # test is ansible installed
 command -v ansible-playbook >/dev/null 2>&1

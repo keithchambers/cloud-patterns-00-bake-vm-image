@@ -4,8 +4,9 @@
   vars_files:
     - ../vars/main.yml
   vars:
+    - build_img_prefix: "hello-world"
     - tmp_dir: "../tmp"
-    - log_dir: "../logs"
+    - log_dir: "../log"
     - base_img_file: "{{ base_img_url | basename }}"
     - base_img_name: "{{ base_img_file.split('.') | first }}"
     - packer_file: "{{ packer_url | basename }}"
@@ -14,20 +15,17 @@
       file:
         path: "{{ tmp_dir }}"
         state: directory
-      tags: setup
 
     - name: create log directory
       file:
         path: "{{ log_dir }}"
         state: directory
-      tags: build
 
     - name: enable openstack yum repo
       sudo: yes
       yum:
         name: https://repos.fedorapeople.org/repos/openstack/openstack-icehouse/rdo-release-icehouse-4.noarch.rpm
         state: present
-      tags: setup
 
     - name: install playbook dependencies via yum
       sudo: yes
@@ -39,22 +37,18 @@
         - qemu-img
         - python-novaclient
         - python-glanceclient
-      tags: setup
 
     # as of ansible v1.8.1 the unarchive module is not idempotent for zip archives
     - name: check if packer installed
       command: which packer
       register: packer
       changed_when: packer.stdout != "/usr/local/bin/packer"
-      always_run: yes
-      tags: setup
 
     - name: download packer binary archive
       get_url:
         url: "{{ packer_url }}"
         dest: "{{ tmp_dir }}/{{ packer_file }}"
       when: packer.changed
-      tags: setup
 
     - name: install packer from archive
       sudo: yes
@@ -62,7 +56,6 @@
         src: "{{ tmp_dir }}/{{ packer_file }}"
         dest: /usr/local/bin
       when: packer.changed
-      tags: setup
 
     - name: generate ssh key for current user
       user:
@@ -70,7 +63,6 @@
         generate_ssh_key: yes
         ssh_key_bits: 2048 
       register: gen_ssh_key
-      tags: setup
 
     - name: delete previous ssh key for openstack tenant
       nova_keypair:
@@ -80,8 +72,6 @@
         login_tenant_name: "{{ os_tenant_name }}"
         name: test-instance
         state: absent
-      when: gen_ssh_key.changed
-      tags: setup
 
     - name: add ssh key to openstack tenant
       nova_keypair:
@@ -92,20 +82,17 @@
         name: test-instance
         public_key: "{{ lookup('file','~/.ssh/id_rsa.pub') }}"
         state: present
-      tags: setup
 
     - name: download source image
       get_url:
         url: "{{ base_img_url }}"
         dest: "{{ tmp_dir }}/{{ base_img_file }}"
-      tags: setup
 
     - name: convert source image to raw format
       command: qemu-img convert {{ base_img_file }} {{ base_img_name }}.raw
       args:
         chdir: "{{ tmp_dir }}"
         creates: "{{ base_img_name }}.raw"
-      tags: setup
 
     - name: upload converted source image to cloud project
       glance_image:
@@ -119,7 +106,6 @@
         is_public: false
         timeout: 1800
         state: present
-      tags: setup
 
     - name: get cloud instance flavor uuid for image build
       shell: nova flavor-list | awk '$6 >= 2048 && $6 <= 16192 && $8 >= 10 { print $2; exit }'
@@ -131,10 +117,6 @@
       register: flavor
       changed_when: no
       failed_when: flavor.stdout == ""
-      always_run: yes
-      tags:
-        - build
-        - test
 
     - name: get source image uuid for image build
       shell: nova image-list | awk '$4 == "'"{{ base_img_name }}"'" { print $2 }'
@@ -146,37 +128,34 @@
       register: base_img_uuid
       changed_when: no
       failed_when: base_img_uuid.stdout == ""
-      tags: build
 
     - name: generate version number for image build
       shell: date "+%Y%m%d%H%M"
       register: version
       changed_when: no
-      always_run: yes
-      tags: build
 
     - name: set_fact build_img
       set_fact:
-        build_img: "hello-world-v{{ version.stdout }}"
-      always_run: yes
-      tags: build
+        build_img: "{{ build_img_prefix }}-v{{ version.stdout }}"
 
-    - name: check if build already exists
+    - name: print image name for build
+      debug:
+        msg: "{{ build_img }}"
+
+    - name: check if image with same name registered in openstack
       shell: nova image-list | grep -q {{ build_img }}
       register: build_exists
-      changed_when: build_exists.rc == 1
-      failed_when: no
-      always_run: yes
-      tags: build
+      changed_when: no
+      failed_when: build_exists.rc != 1
 
-    - name: build image
+    - name: build image and register with openstack
       shell:
         packer build
         -var 'flavor={{ flavor.stdout }}'
         -var 'source_image={{ base_img_uuid.stdout }}'
         -var 'image_name={{ build_img }}'
         -var 'networks={{ os_net_id }}'
-        ../src/hello-world-img.json
+        ../src/img.json
       environment:
         PACKER_LOG: 1
         PACKER_LOG_PATH: "{{ log_dir }}/{{ build_img }}.log"
@@ -184,27 +163,15 @@
         OS_USERNAME: "{{ os_username }}"
         OS_PASSWORD: "{{ os_password }}"
         OS_TENANT_ID: "{{ os_tenant_id }}"
-      when: build_exists.changed
-      tags: build
 
-    # test to confirm the built image boots properly 
-    - name: destroy test instance from previous build (if exists)
-      nova_compute:
-        auth_url: "{{ os_auth_url }}"
-        login_username: "{{ os_username }}"
-        login_password: "{{ os_password }}"
-        login_tenant_name: "{{ os_tenant_name }}"
-        name: test-instance
-        state: absent
-      tags: test
-
+    # test the build
     - name: launch test instance of built image
       nova_compute:
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
         login_tenant_name: "{{ os_tenant_name }}"
-        name: test-instance
+        name: "{{ build_img }}"
         image_name: "{{ build_img }}"
         flavor_id: "{{ flavor.stdout }}"
         key_name: test-instance
@@ -212,7 +179,11 @@
           - net-id: "{{ os_net_id }}"
         state: present
       register: test_instance
-      tags: test
+
+    - name: add test instance to inventory
+      add_host:
+        name: "{{ test_instance.private_ip }}"
+      when: test_instance.changed
 
     - name: wait for test instance to boot
       local_action:
@@ -224,36 +195,32 @@
         timeout: 120
         state: started
       when: test_instance.changed
-      tags: test
 
-    - name: add test instance to inventory
-      add_host:
-        name: "{{ test_instance.private_ip }}"
-        groups: test-instance
-      when: test_instance.changed
-      tags: test
+    - name: generate manifest of installed packages
+      shell: rpm -qa | sort -V
+      register: packages
+      run_once: yes
+      delegate_to: "{{ test_instance.private_ip }}"
 
-- hosts: test-instance
-  gather_facts: no
-  vars_files:
-    - ../vars/main.yml
-  tasks:
-    - name: run command against test instance
-      command: uptime
-      tags: test
+    - name: generate manifest of installed containers
+      shell: docker images | tail -n +2 | awk '{ print "repo:" $1 " tag:" $2 " image" $3 }'
+      register: containers
+      run_once: yes
+      delegate_to: "{{ test_instance.private_ip }}"
 
-- hosts: localhost
-  connection: local
-  gather_facts: no
-  vars_files:
-    - ../vars/main.yml
-  tasks:
+    - name: log manifest of installed packages to log directory
+      local_action: shell echo {{ packages.stdout_lines }} >> {{ log_dir }}/{{ build_img }}.manifest
+      run_once: yes
+
+    - name: log manifest of installed containers to log directory
+      local_action: shell echo {{ containers.stdout_lines }} >> {{ log_dir }}/{{ build_img }}.manifest
+      run_once: yes
+
     - name: destroy test instance
       nova_compute:
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
         login_tenant_name: "{{ os_tenant_name }}"
-        name: test-instance
+        name: "{{ build_img }}"
         state: absent
-      tags: test

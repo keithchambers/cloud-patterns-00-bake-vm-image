@@ -16,13 +16,17 @@
     "provisioners": [{
         "type": "shell",
         "inline": [
+            "# upgrade and configure os",
             "sudo grubby --update-kernel=ALL --args=elevator=noop",
             "sudo yum upgrade -y",
+            "# install and configure docker",
             "sudo yum install -y http://cbs.centos.org/kojifiles/packages/docker/1.4.1/2.el7/x86_64/docker-1.4.1-2.el7.x86_64.rpm",
             "sudo yum install -y http://cbs.centos.org/kojifiles/packages/docker/1.4.1/2.el7/x86_64/docker-logrotate-1.4.1-2.el7.x86_64.rpm",
             "sudo systemctl enable docker",
             "sudo systemctl start docker",
+            "# install and configure app",
             "sudo docker run -d -p 80:80 --restart=always keithchambers/docker-hello-world:latest",
+            "# generate image software manifest",
             "rpm -qa | sort -V | awk '{ print \"package: \" $1 }' > {{user `image_name`}}.manifest",
             "sudo docker images | sort | tail -n +2 | awk '{ print \"container: repo:\" $1 \" tag:\" $2 \" image:\" $3 }' >> {{user `image_name`}}.manifest",
             "sudo poweroff"]

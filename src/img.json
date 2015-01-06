@@ -23,6 +23,8 @@
             "sudo systemctl enable docker",
             "sudo systemctl start docker",
             "sudo docker run -d -p 80:80 --restart=always keithchambers/docker-hello-world:latest",
+            "rpm -qa | sort -V | awk '{ print \"package: \" $1 }' > {{user `image_name`}}.manifest",
+            "sudo docker images | sort | tail -n +2 | awk '{ print \"container: repo:\" $1 \" tag:\" $2 \" image:\" $3 }' >> {{user `image_name`}}.manifest",
             "sudo poweroff"]
     }]
 }

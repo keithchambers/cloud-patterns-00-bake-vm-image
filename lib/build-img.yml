@@ -6,8 +6,8 @@
     - build_img_prefix: "hello-world"
     - tmp_dir: "../tmp"
     - log_dir: "../log"
-    - base_img_file: "{{ base_img_url | basename }}"
-    - base_img_name: "{{ base_img_file.split('.') | first }}"
+    - src_img_file: "{{ src_img_url | basename }}"
+    - src_img_name: "{{ src_img_file.split('.') | first }}"
     - packer_file: "{{ packer_url | basename }}"
   tasks:
     - name: create tmp directory
@@ -63,35 +63,35 @@
         ssh_key_bits: 2048 
       register: gen_ssh_key
 
-    - name: delete previous ssh key for openstack tenant
+    - name: delete previous vm-build ssh key from openstack
       nova_keypair:
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
         login_tenant_name: "{{ os_tenant_name }}"
-        name: test-instance
+        name: vm-build
         state: absent
 
-    - name: add ssh key to openstack tenant
+    - name: add vm-build ssh key to openstack
       nova_keypair:
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
         login_tenant_name: "{{ os_tenant_name}}"
-        name: test-instance
+        name: vm-build
         public_key: "{{ lookup('file','~/.ssh/id_rsa.pub') }}"
         state: present
 
     - name: download source image
       get_url:
-        url: "{{ base_img_url }}"
-        dest: "{{ tmp_dir }}/{{ base_img_file }}"
+        url: "{{ src_img_url }}"
+        dest: "{{ tmp_dir }}/{{ src_img_file }}"
 
     - name: convert source image to raw format
-      command: qemu-img convert {{ base_img_file }} {{ base_img_name }}.raw
+      command: qemu-img convert {{ src_img_file }} {{ src_img_name }}.raw
       args:
         chdir: "{{ tmp_dir }}"
-        creates: "{{ base_img_name }}.raw"
+        creates: "{{ src_img_name }}.raw"
 
     - name: upload converted source image to cloud project
       glance_image:
@@ -99,8 +99,8 @@
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
         login_tenant_name: "{{ os_tenant_name }}"
-        name: "{{ base_img_name }}"
-        file: "{{ tmp_dir }}/{{ base_img_name }}.raw"
+        name: "{{ src_img_name }}"
+        file: "{{ tmp_dir }}/{{ src_img_name }}.raw"
         disk_format: raw
         is_public: false
         timeout: 1800
@@ -118,17 +118,17 @@
       failed_when: flavor.stdout == ""
 
     - name: get source image uuid for image build
-      shell: nova image-list | awk '$4 == "'"{{ base_img_name }}"'" { print $2 }'
+      shell: nova image-list | awk '$4 == "'"{{ src_img_name }}"'" { print $2 }'
       environment:
         OS_AUTH_URL: "{{ os_auth_url }}"
         OS_USERNAME: "{{ os_username }}"
         OS_PASSWORD: "{{ os_password }}"
         OS_TENANT_NAME: "{{ os_tenant_name }}"
-      register: base_img_uuid
+      register: src_img_uuid
       changed_when: no
-      failed_when: base_img_uuid.stdout == ""
+      failed_when: src_img_uuid.stdout == ""
 
-    - name: audo-generate version number for image build
+    - name: auto-generate version number for image build
       shell: date "+v%Y%m%d-%H%M"
       register: version
       changed_when: no
@@ -156,7 +156,7 @@
       shell:
         packer build
         -var 'flavor={{ flavor.stdout }}'
-        -var 'source_image={{ base_img_uuid.stdout }}'
+        -var 'source_image={{ src_img_uuid.stdout }}'
         -var 'image_name={{ build_img }}'
         -var 'networks={{ os_net_id }}'
         ../src/img.json
@@ -169,8 +169,7 @@
         OS_TENANT_ID: "{{ os_tenant_id }}"
       when: build_exists.rc == 1
 
-    # test the build
-    - name: launch test instance of built image
+    - name: launch instance of built image
       nova_compute:
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"
@@ -179,34 +178,34 @@
         name: "{{ build_img }}"
         image_name: "{{ build_img }}"
         flavor_id: "{{ flavor.stdout }}"
-        key_name: test-instance
+        key_name: vm-build
         nics:
           - net-id: "{{ os_net_id }}"
         state: present
-      register: test_instance
+      register: instance
 
-    - name: add test instance to runtime inventory
+    - name: add instance to runtime inventory
       add_host:
-        name: "{{ test_instance.private_ip }}"
+        name: "{{ instance.private_ip }}"
 
-    - name: wait for test instance to boot
+    - name: wait for instance to boot
       wait_for:
-        host: "{{ test_instance.private_ip }}"
+        host: "{{ instance.private_ip }}"
         port: 22
         search_regex: OpenSSH
         delay: "{{ boot_wait | default(60) }}"
         timeout: 120
         state: started
 
-    - name: copy build manifest from image to log directory
+    - name: copy build manifest from instance to log directory
       fetch:
         src: "/root/{{ build_img }}.manifest"
         dest: "{{ log_dir }}"
         flat: yes
         fail_on_missing: no
-      delegate_to: "{{ test_instance.private_ip }}"
+      delegate_to: "{{ instance.private_ip }}"
 
-    - name: destroy test instance
+    - name: destroy instance
       nova_compute:
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"

@@ -33,8 +33,8 @@ $ cd ~/cloud-patterns-00-bake-vm-image
 Create `vars/main.yml` file with the appropriate settings.
 
 ```
-# url for base image to start from
-base_img_url: http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2c
+# url for source image to build from
+src_img_url: http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2c
 
 # url for packer binary
 packer_url: https://dl.bintray.com/mitchellh/packer/packer_0.7.5_linux_amd64.zip

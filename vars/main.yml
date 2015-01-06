@@ -1,4 +1,4 @@
-# url for src image to build from
+# url for source image to build from
 src_img_url: http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2c
 
 # url for packer binary

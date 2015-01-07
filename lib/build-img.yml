@@ -82,16 +82,29 @@
         public_key: "{{ lookup('file','~/.ssh/id_rsa.pub') }}"
         state: present
 
+    - name: check if source image registered in openstack
+      shell: nova image-list | grep -q {{ src_img_name }}
+      environment:
+        OS_AUTH_URL: "{{ os_auth_url }}"
+        OS_USERNAME: "{{ os_username }}"
+        OS_PASSWORD: "{{ os_password }}"
+        OS_TENANT_NAME: "{{ os_tenant_name }}"
+      register: src_exists
+      changed_when: no
+      failed_when: src_exists.rc > 1
+
     - name: download source image
       get_url:
         url: "{{ src_img_url }}"
         dest: "{{ tmp_dir }}/{{ src_img_file }}"
+      when: src_exists.rc == 1
 
     - name: convert source image to raw format
       command: qemu-img convert {{ src_img_file }} {{ src_img_name }}.raw
       args:
         chdir: "{{ tmp_dir }}"
         creates: "{{ src_img_name }}.raw"
+      when: src_exists.rc == 1
 
     - name: upload converted source image to cloud project
       glance_image:
@@ -105,6 +118,7 @@
         is_public: false
         timeout: 1800
         state: present
+      when: src_exists.rc == 1
 
     - name: get cloud instance flavor uuid for image build
       shell: nova flavor-list | awk '$6 >= 2048 && $6 <= 16192 && $8 >= 10 { print $2; exit }'
@@ -141,7 +155,7 @@
       debug:
         msg: "{{ build_img }}"
 
-    - name: check if image with same name registered in openstack
+    - name: check if built image with same name registered in openstack
       shell: nova image-list | grep -q {{ build_img }}
       environment:
         OS_AUTH_URL: "{{ os_auth_url }}"

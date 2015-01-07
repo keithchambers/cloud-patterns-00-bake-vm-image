@@ -83,28 +83,27 @@
         state: present
 
     - name: check if source image registered in openstack
-      shell: nova image-list | grep -q {{ src_img_name }}
+      shell: nova image-list | awk '$4 == "'"{{ src_img_name }}"'" { print $2 }'
       environment:
         OS_AUTH_URL: "{{ os_auth_url }}"
         OS_USERNAME: "{{ os_username }}"
         OS_PASSWORD: "{{ os_password }}"
         OS_TENANT_NAME: "{{ os_tenant_name }}"
-      register: src_exists
+      register: src_registered
       changed_when: no
-      failed_when: src_exists.rc > 1
 
     - name: download source image
       get_url:
         url: "{{ src_img_url }}"
         dest: "{{ tmp_dir }}/{{ src_img_file }}"
-      when: src_exists.rc == 1
+      when: src_registered.stdout == ""
 
     - name: convert source image to raw format
       command: qemu-img convert {{ src_img_file }} {{ src_img_name }}.raw
       args:
         chdir: "{{ tmp_dir }}"
         creates: "{{ src_img_name }}.raw"
-      when: src_exists.rc == 1
+      when: src_registered.stdout == ""
 
     - name: upload converted source image to cloud project
       glance_image:
@@ -118,7 +117,7 @@
         is_public: false
         timeout: 1800
         state: present
-      when: src_exists.rc == 1
+      when: src_registered.stdout == ""
 
     - name: get cloud instance flavor uuid for image build
       shell: nova flavor-list | awk '$6 >= 2048 && $6 <= 16192 && $8 >= 10 { print $2; exit }'
@@ -143,7 +142,7 @@
       failed_when: src_img_uuid.stdout == ""
 
     - name: auto-generate version number for image build
-      shell: date "+v%Y%m%d%H%M"
+      shell: date "+v%Y%m%d-%H%M"
       register: version
       changed_when: no
 
@@ -156,15 +155,14 @@
         msg: "{{ build_img }}"
 
     - name: check if build image (image with same name) registered in openstack
-      shell: nova image-list | grep -q {{ build_img }}
+      shell: nova image-list | awk '$4 == "'"{{ src_img_name }}"'" { print $2 }'
       environment:
         OS_AUTH_URL: "{{ os_auth_url }}"
         OS_USERNAME: "{{ os_username }}"
         OS_PASSWORD: "{{ os_password }}"
         OS_TENANT_NAME: "{{ os_tenant_name }}"
-      register: build_exists
+      register: build_registered
       changed_when: no
-      failed_when: build_exists.rc > 1
 
     - name: build image and register with openstack
       shell:
@@ -181,7 +179,7 @@
         OS_USERNAME: "{{ os_username }}"
         OS_PASSWORD: "{{ os_password }}"
         OS_TENANT_ID: "{{ os_tenant_id }}"
-      when: build_exists.rc == 1
+      when: build_registered.stdout != ""
 
     - name: launch instance of build image
       nova_compute:

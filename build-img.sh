@@ -9,12 +9,12 @@ fi
 # build image
 export ANSIBLE_HOST_KEY_CHECKING=False
 ansible-playbook lib/build-img.yml
-RETVAL="$?"
+RC="$?"
 
 # print build result
-[[ "$RETVAL" -eq 0 ]] && RETMSG="SUCCEEDED" || RETMSG="FAILED"
-echo "Build image $RETMSG in $SECONDS seconds."
+[[ "$RC" -eq 0 ]] && MSG="SUCCEEDED" || MSG="FAILED"
+echo "Build image $MSG in $SECONDS seconds."
 
-exit "$RETVAL"
+exit "$RC"
 
 # EOF

@@ -155,7 +155,7 @@
       debug:
         msg: "{{ build_img }}"
 
-    - name: check if built image with same name registered in openstack
+    - name: check if build image (image with same name) registered in openstack
       shell: nova image-list | grep -q {{ build_img }}
       environment:
         OS_AUTH_URL: "{{ os_auth_url }}"
@@ -183,7 +183,7 @@
         OS_TENANT_ID: "{{ os_tenant_id }}"
       when: build_exists.rc == 1
 
-    - name: launch instance of built image
+    - name: launch instance of build image
       nova_compute:
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"

@@ -1,7 +1,9 @@
 ---
-- name: test app server
+- name: test app server responds to http request
   uri:
     url: "http://{{ instance.private_ip }}"
+    method: GET
+    status_code: 200
     return_content: yes
-  register: webpage
-  failed_when: "'Hello, world!' not in webpage.content"
+  register: response
+  failed_when: "'Hello, world!' not in response.content"

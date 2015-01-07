@@ -63,47 +63,48 @@
         ssh_key_bits: 2048 
       register: gen_ssh_key
 
-    - name: delete previous vm-build ssh key from openstack
+    - name: delete previous image-build ssh key from openstack
       nova_keypair:
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
         login_tenant_name: "{{ os_tenant_name }}"
-        name: vm-build
+        name: image-build
         state: absent
 
-    - name: add vm-build ssh key to openstack
+    - name: add image-build ssh key to openstack
       nova_keypair:
         auth_url: "{{ os_auth_url }}"
         login_username: "{{ os_username }}"
         login_password: "{{ os_password }}"
         login_tenant_name: "{{ os_tenant_name}}"
-        name: vm-build
+        name: image-build
         public_key: "{{ lookup('file','~/.ssh/id_rsa.pub') }}"
         state: present
 
     - name: check if source image registered in openstack
-      shell: nova image-list | awk '$4 == "'"{{ src_img_name }}"'" { print $2 }'
+      shell: nova image-list | grep -q {{ src_img_name }}
       environment:
         OS_AUTH_URL: "{{ os_auth_url }}"
         OS_USERNAME: "{{ os_username }}"
         OS_PASSWORD: "{{ os_password }}"
         OS_TENANT_NAME: "{{ os_tenant_name }}"
-      register: src_registered
+      register: src_exists
       changed_when: no
+      failed_when: src_exists.rc > 1
 
     - name: download source image
       get_url:
         url: "{{ src_img_url }}"
         dest: "{{ tmp_dir }}/{{ src_img_file }}"
-      when: src_registered.stdout == ""
+      when: src_exists.rc == 1
 
     - name: convert source image to raw format
       command: qemu-img convert {{ src_img_file }} {{ src_img_name }}.raw
       args:
         chdir: "{{ tmp_dir }}"
         creates: "{{ src_img_name }}.raw"
-      when: src_registered.stdout == ""
+      when: src_exists.rc == 1
 
     - name: upload converted source image to cloud project
       glance_image:
@@ -117,7 +118,7 @@
         is_public: false
         timeout: 1800
         state: present
-      when: src_registered.stdout == ""
+      when: src_exists.rc == 1
 
     - name: get cloud instance flavor uuid for image build
       shell: nova flavor-list | awk '$6 >= 2048 && $6 <= 16192 && $8 >= 10 { print $2; exit }'
@@ -142,7 +143,7 @@
       failed_when: src_img_uuid.stdout == ""
 
     - name: auto-generate version number for image build
-      shell: date "+v%Y%m%d-%H%M"
+      shell: date "+v%Y%m%d%H%M"
       register: version
       changed_when: no
 
@@ -155,14 +156,15 @@
         msg: "{{ build_img }}"
 
     - name: check if build image (image with same name) registered in openstack
-      shell: nova image-list | awk '$4 == "'"{{ src_img_name }}"'" { print $2 }'
+      shell: nova image-list | grep -q {{ build_img }}
       environment:
         OS_AUTH_URL: "{{ os_auth_url }}"
         OS_USERNAME: "{{ os_username }}"
         OS_PASSWORD: "{{ os_password }}"
         OS_TENANT_NAME: "{{ os_tenant_name }}"
-      register: build_registered
+      register: build_exists
       changed_when: no
+      failed_when: build_exists.rc > 1
 
     - name: build image and register with openstack
       shell:
@@ -179,7 +181,7 @@
         OS_USERNAME: "{{ os_username }}"
         OS_PASSWORD: "{{ os_password }}"
         OS_TENANT_ID: "{{ os_tenant_id }}"
-      when: build_registered.stdout != ""
+      when: build_exists.rc == 1
 
     - name: launch instance of build image
       nova_compute:
@@ -190,7 +192,7 @@
         name: "{{ build_img }}"
         image_name: "{{ build_img }}"
         flavor_id: "{{ flavor.stdout }}"
-        key_name: vm-build
+        key_name: image-build
         nics:
           - net-id: "{{ os_net_id }}"
         state: present
@@ -216,6 +218,8 @@
         flat: yes
         fail_on_missing: no
       delegate_to: "{{ instance.private_ip }}"
+
+    - include: ../test/main.yml
 
     - name: destroy instance
       nova_compute:

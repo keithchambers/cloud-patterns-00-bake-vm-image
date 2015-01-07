@@ -1,0 +1,7 @@
+---
+- name: test app server
+  uri:
+    url: "http://{{ instance.private_ip }}"
+    return_content: yes
+  register: webpage
+  failed_when: "'Hello, world!' not in webpage.content"

@@ -142,7 +142,7 @@
       failed_when: src_img_uuid.stdout == ""
 
     - name: auto-generate version number for image build
-      shell: date "+v%Y%m%d-%H%M"
+      shell: date "+v%Y%m%d%H%M"
       register: version
       changed_when: no
 

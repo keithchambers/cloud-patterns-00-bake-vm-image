@@ -179,7 +179,7 @@
         OS_USERNAME: "{{ os_username }}"
         OS_PASSWORD: "{{ os_password }}"
         OS_TENANT_ID: "{{ os_tenant_id }}"
-      when: build_registered.stdout != 0
+      when: build_registered.stdout == ""
 
     - name: launch instance of build image
       nova_compute:

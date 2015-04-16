@@ -209,14 +209,6 @@
         timeout: 120
         state: started
 
-    - name: copy build manifest from instance to log directory
-      fetch:
-        src: "/root/{{ build_img }}.manifest"
-        dest: "{{ log_dir }}"
-        flat: yes
-        fail_on_missing: no
-      delegate_to: "{{ instance.private_ip }}"
-
     - include: ../test/main.yml
 
     - name: destroy instance

@@ -22,12 +22,6 @@
             "# install and configure docker",
             "sudo yum install -y docker",
             "sudo systemctl enable docker",
-            "sudo systemctl start docker",
-            "# install and configure app",
-            "sudo docker run -d -p 80:80 --restart=always keithchambers/docker-hello-world:latest",
-            "# generate image software manifest",
-            "rpm -qa | sort -V | awk '{ print \"package: \" $1 }' > {{user `image_name`}}.manifest",
-            "sudo docker images | sort | tail -n +2 | awk '{ print \"container: repo:\" $1 \" tag:\" $2 \" image:\" $3 }' >> {{user `image_name`}}.manifest",
-            "sudo poweroff"]
+            "sudo systemctl start docker"]
     }]
 }
